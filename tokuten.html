@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>とくてん板｜キャッチバレー</title>
+<meta name="description" content="ネット型ゲーム（キャッチバレー）でつかう、タブレット用のとくてん板です。点数とラリーの回数を記録できます。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f7f5;--ink:#1d1d1f;--sub:#5b5b60;--line:#d9d9de;--card:#fff;--a:#d6453d;--b:#2f63c9;--ok:#1d1d1f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17171a;--ink:#f2f2f4;--sub:#b3b3ba;--line:#3a3a40;--card:#222226;--a:#ff6b62;--b:#6b9bff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"BIZ UDPGothic","Hiragino Sans",sans-serif;-webkit-tap-highlight-color:transparent}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:8px}
+header a{color:var(--sub);font-size:15px}
+h1{font-size:20px;margin:0}
+main{max-width:980px;margin:0 auto;padding:0 16px 40px}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.team{background:var(--card);border:3px solid var(--line);border-radius:16px;padding:12px;text-align:center}
+.team.a{border-color:var(--a)}.team.b{border-color:var(--b)}
+.team input{width:100%;font:inherit;font-size:20px;font-weight:700;text-align:center;border:1px solid var(--line);border-radius:10px;padding:8px;background:transparent;color:var(--ink)}
+.score{font-size:clamp(72px,18vw,150px);font-weight:700;line-height:1.1;margin:8px 0;font-variant-numeric:tabular-nums}
+.a .score{color:var(--a)}.b .score{color:var(--b)}
+.btns{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;cursor:pointer;touch-action:manipulation}
+.plus{font-size:28px;padding:18px 0;color:#fff}
+.a .plus{background:var(--a)}.b .plus{background:var(--b)}
+.minus{font-size:22px;background:var(--line);color:var(--ink)}
+.rally{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 16px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.rally .n{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums}
+.rally .best{color:var(--sub);font-size:16px}
+.rally .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.rally button{padding:14px 18px;font-size:18px;background:var(--ink);color:var(--bg)}
+.rally button.ghost{background:var(--line);color:var(--ink)}
+.tools{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.tools button{padding:12px 16px;font-size:16px;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.tools button.main{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.timer{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+h2{font-size:18px;margin:26px 0 8px}
+table{width:100%;border-collapse:collapse;background:var(--card);font-size:16px}
+th,td{border:1px solid var(--line);padding:8px;text-align:center}
+.note{color:var(--sub);font-size:14px;line-height:1.7}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;transition:.2s}
+.toast.on{opacity:1}
+@media (max-width:560px){.btns{grid-template-columns:1fr}.minus{padding:10px 0}.timer{margin-left:0;width:100%}}
+</style>
+</head>
+<body>
+<header><h1>とくてん<ruby>板<rt>ばん</rt></ruby></h1><a href="./">← もどる</a></header>
+<main>
+  <div class="teams">
+    <section class="team a"><input id="nameA" value="赤チーム" aria-label="チームの名前"><div class="score" id="scoreA">0</div>
+      <div class="btns"><button class="plus" data-t="A" data-d="1">＋1</button><button class="minus" data-t="A" data-d="-1">−1</button></div></section>
+    <section class="team b"><input id="nameB" value="青チーム" aria-label="チームの名前"><div class="score" id="scoreB">0</div>
+      <div class="btns"><button class="plus" data-t="B" data-d="1">＋1</button><button class="minus" data-t="B" data-d="-1">−1</button></div></section>
+  </div>
+
+  <div class="rally">
+    <div><div>ネットをこえた回数</div><div class="n" id="rally">0</div><div class="best">いちばん長いラリー <b id="best">0</b> 回</div></div>
+    <div class="row"><button id="rallyUp">こえた！ ＋1</button><button class="ghost" id="rallyEnd">ラリー<ruby>終<rt>お</rt></ruby>わり</button></div>
+  </div>
+
+  <div class="tools">
+    <button class="main" id="save">この<ruby>試合<rt>しあい</rt></ruby>を記録する</button>
+    <button id="reset">0にもどす</button>
+    <div class="timer"><span id="time">3:00</span><button id="tStart">スタート</button><button id="tSet">3分</button></div>
+  </div>
+
+  <h2>きょうの記録</h2>
+  <table><thead><tr><th>#</th><th>チーム</th><th>点数</th><th>いちばん長いラリー</th></tr></thead><tbody id="log"></tbody></table>
+  <div class="tools"><button id="copy">記録をコピーする（スライドにはりつけ）</button><button id="clear">記録をぜんぶ消す</button></div>
+  <p class="note">記録はこのタブレットの中だけにのこります。コピーして、チームのGoogleスライド「とくてんの記録」にはりつけてください。<br>ラリーの数え方：ボールがネットをこえるたびに「こえた！」をおします。点が入ったら「ラリー終わり」をおします。</p>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem('nv_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('nv_'+k,JSON.stringify(v))}catch(e){}}};
+let s=store.get('state',{A:0,B:0,rally:0,best:0,nameA:'赤チーム',nameB:'青チーム'});
+let log=store.get('log',[]);
+function render(){$('scoreA').textContent=s.A;$('scoreB').textContent=s.B;$('rally').textContent=s.rally;$('best').textContent=s.best;$('nameA').value=s.nameA;$('nameB').value=s.nameB;
+  $('log').innerHTML=log.map((g,i)=>`<tr><td>${i+1}</td><td>${esc(g.nameA)} 対 ${esc(g.nameB)}</td><td>${g.A} − ${g.B}</td><td>${g.best} 回</td></tr>`).join('')||'<tr><td colspan="4">まだありません</td></tr>';
+  store.set('state',s);store.set('log',log)}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),1600)}
+function endRally(){if(s.rally>s.best)s.best=s.rally;s.rally=0}
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{const t=b.dataset.t,d=+b.dataset.d;s[t]=Math.max(0,s[t]+d);if(d>0)endRally();render()});
+$('rallyUp').onclick=()=>{s.rally++;render()};
+$('rallyEnd').onclick=()=>{endRally();render()};
+$('nameA').oninput=e=>{s.nameA=e.target.value;store.set('state',s)};
+$('nameB').oninput=e=>{s.nameB=e.target.value;store.set('state',s)};
+$('save').onclick=()=>{endRally();log.push({nameA:s.nameA,nameB:s.nameB,A:s.A,B:s.B,best:s.best});s.A=0;s.B=0;s.rally=0;s.best=0;render();toast('記録しました')};
+$('reset').onclick=()=>{if(confirm('点数とラリーを0にもどしますか？')){s.A=0;s.B=0;s.rally=0;s.best=0;render()}};
+$('clear').onclick=()=>{if(confirm('きょうの記録をぜんぶ消しますか？')){log=[];render()}};
+$('copy').onclick=async()=>{const t=log.map((g,i)=>`${i+1}試合目　${g.nameA} ${g.A} − ${g.B} ${g.nameB}　いちばん長いラリー ${g.best}回`).join('\n')||'記録なし';
+  try{await navigator.clipboard.writeText(t);toast('コピーしました')}catch(e){prompt('この文をコピーしてください',t)}};
+let left=180,tid=null;
+function showT(){$('time').textContent=`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`}
+$('tStart').onclick=()=>{if(tid){clearInterval(tid);tid=null;$('tStart').textContent='スタート';return}
+  tid=setInterval(()=>{left--;showT();if(left<=0){clearInterval(tid);tid=null;$('tStart').textContent='スタート';toast('しゅうりょう！');try{navigator.vibrate&&navigator.vibrate(400)}catch(e){}}},1000);$('tStart').textContent='ストップ'};
+$('tSet').onclick=()=>{const m=[3,4,5][([3,4,5].indexOf(Math.ceil(left/60))+1)%3]||3;left=m*60;$('tSet').textContent=m+'分';showT()};
+render();showT();
+</script>
+</body>
+</html>
