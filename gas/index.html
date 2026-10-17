@@ -53,6 +53,13 @@ th{background:var(--ink);color:#fff;font-weight:700}
 .sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
 .sum div{background:var(--card);border-radius:14px;padding:10px;text-align:center;font-size:13px;color:var(--sub)}
 .sum b{display:block;font-size:30px;color:var(--ink)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.modal.on{display:flex}
+.modal .box{background:#fff;border-radius:18px;padding:22px;max-width:460px;width:100%;text-align:center}
+.modal .msg{font-size:20px;line-height:1.7;margin-bottom:16px;white-space:pre-line}
+.modal .btns{display:flex;gap:10px}
+.modal .btns button{flex:1;padding:16px;font-size:18px}
+.modal .yes{background:var(--ok);color:#fff}.modal .no{background:var(--line);color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;z-index:9}
 .toast.on{opacity:1}
 @media (max-width:600px){.setup{grid-template-columns:1fr 1fr}.pm{grid-template-columns:1fr}.rally{grid-template-columns:1fr}.rally .row button{flex:1}header h1{font-size:15px}.sum{grid-template-columns:1fr 1fr}}
@@ -111,6 +118,7 @@ th{background:var(--ink);color:#fff;font-weight:700}
   <p class="note">いちばん長いラリーは、そのチームが出た試合の中でいちばん長かったものです。</p>
 </section>
 </main>
+<div class="modal" id="modal"><div class="box"><div class="msg" id="mmsg"></div><div class="btns"><button class="no" id="mno">やめる</button><button class="yes" id="myes">はい</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -124,6 +132,11 @@ let s = store.get('state', { s1: 0, s2: 0, rally: 0, best: 0 });
 let pending = store.get('pending', []);
 
 function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 1800); }
+function ask(msg, yes, cb) {
+  $('mmsg').textContent = msg; $('myes').textContent = yes; $('modal').classList.add('on');
+  $('myes').onclick = () => { $('modal').classList.remove('on'); cb(); };
+  $('mno').onclick = () => $('modal').classList.remove('on');
+}
 function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function render() {
@@ -150,7 +163,7 @@ document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
 });
 $('up').onclick = () => { s.rally++; render(); };
 $('end').onclick = () => { endRally(); render(); };
-$('reset').onclick = () => { if (confirm('点数とラリーを0にもどしますか？')) { s = { s1: 0, s2: 0, rally: 0, best: 0 }; render(); } };
+$('reset').onclick = () => ask('点数とラリーを0にもどしますか？', '0にもどす', () => { s = { s1: 0, s2: 0, rally: 0, best: 0 }; render(); });
 ['date', 'period', 'court', 't1', 't2'].forEach(id => $(id).onchange = () => store.set('setup', setupNow()));
 function setupNow() { return { date: $('date').value, period: $('period').value, court: $('court').value, t1: $('t1').value, t2: $('t2').value }; }
 
@@ -160,10 +173,11 @@ $('send').onclick = () => {
   endRally();
   const g = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), date: st.date, period: st.period, court: st.court,
               team1: st.t1, score1: s.s1, team2: st.t2, score2: s.s2, best: s.best };
-  if (!confirm(g.team1 + ' ' + g.score1 + ' − ' + g.score2 + ' ' + g.team2 + '\nいちばん長いラリー ' + g.best + '回\n\nこの記録を送りますか？')) return;
-  pending.push(g); store.set('pending', pending);
-  s = { s1: 0, s2: 0, rally: 0, best: 0 }; render();
-  flush();
+  ask(g.team1 + ' ' + g.score1 + ' − ' + g.score2 + ' ' + g.team2 + '\nいちばん長いラリー ' + g.best + '回\n\nこの記録を送りますか？', '送る', () => {
+    pending.push(g); store.set('pending', pending);
+    s = { s1: 0, s2: 0, rally: 0, best: 0 }; render();
+    flush();
+  });
 };
 let sending = false;
 function flush() {
