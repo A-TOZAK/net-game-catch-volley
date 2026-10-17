@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f7f5;--ink:#1d1d1f;--sub:#5b5b60;--line:#dcdce0;--card:#fff;--a:#d6453d;--b:#2f63c9;--y:#f2b705;--ok:#2e7d4f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"BIZ UDPGothic","Hiragino Sans",sans-serif;letter-spacing:.04em;-webkit-tap-highlight-color:transparent}
+header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ink);color:#fff;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0 auto 0 0;white-space:nowrap}
+.tabs{display:flex;gap:6px}
+.tabs button{background:#3a3a40;color:#fff;border:0;border-radius:10px;padding:8px 12px;font:inherit;font-weight:700;font-size:15px}
+.tabs button.on{background:#fff;color:var(--ink)}
+main{max-width:980px;margin:0 auto;padding:12px 14px 60px}
+section{display:none}section.on{display:block}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;cursor:pointer;touch-action:manipulation}
+select,input{font:inherit;font-size:17px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.setup{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.setup label{display:flex;flex-direction:column;font-size:13px;color:var(--sub);gap:4px}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.team{background:var(--card);border:4px solid var(--line);border-radius:18px;padding:12px;text-align:center}
+.team.a{border-color:var(--a)}.team.b{border-color:var(--b)}
+.team select{width:100%;font-weight:700;text-align:center}
+.score{font-size:clamp(70px,17vw,140px);font-weight:700;line-height:1.1;margin:6px 0;font-variant-numeric:tabular-nums}
+.a .score{color:var(--a)}.b .score{color:var(--b)}
+.pm{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+.plus{font-size:28px;padding:16px 0;color:#fff}.a .plus{background:var(--a)}.b .plus{background:var(--b)}
+.minus{font-size:22px;background:var(--line);color:var(--ink)}
+.rally{margin-top:12px;background:var(--card);border-radius:18px;padding:12px 16px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.rally .n{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums}
+.rally .best{color:var(--sub);font-size:15px}
+.rally .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.rally .row button{padding:14px 18px;font-size:18px;background:var(--ink);color:#fff}
+.rally .row button.ghost{background:var(--line);color:var(--ink)}
+.bar{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar .send{background:var(--ok);color:#fff;padding:14px 18px;font-size:18px;flex:1;min-width:220px}
+.bar .small{background:var(--card);border:1px solid var(--line);color:var(--ink);padding:12px 14px}
+.timer{display:flex;align-items:center;gap:8px;font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+.timer button{font-size:16px;padding:10px 12px;background:var(--card);border:1px solid var(--line)}
+.status{margin-top:10px;font-size:15px;min-height:22px}
+.status.ok{color:var(--ok)}.status.ng{color:var(--a)}
+h2{font-size:20px;margin:18px 0 8px}
+table{width:100%;border-collapse:collapse;background:var(--card);font-size:15px}
+th,td{border:1px solid var(--line);padding:7px 6px;text-align:center}
+th{background:var(--ink);color:#fff;font-weight:700}
+.win{color:var(--a);font-weight:700}.lose{color:var(--b)}
+.chart{background:var(--card);border-radius:14px;padding:8px;margin-top:10px}
+.note{color:var(--sub);font-size:13px;line-height:1.7}
+.sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.sum div{background:var(--card);border-radius:14px;padding:10px;text-align:center;font-size:13px;color:var(--sub)}
+.sum b{display:block;font-size:30px;color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;z-index:9}
+.toast.on{opacity:1}
+@media (max-width:600px){.setup{grid-template-columns:1fr 1fr}.pm{grid-template-columns:1fr}.rally{grid-template-columns:1fr}.rally .row button{flex:1}header h1{font-size:15px}.sum{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>キャッチバレー とくてん板</h1>
+  <div class="tabs">
+    <button data-tab="board" class="on">とくてん板</button>
+    <button data-tab="team">チームの記録</button>
+    <button data-tab="all">クラス全体</button>
+  </div>
+</header>
+<main>
+<!-- とくてん板 -->
+<section id="board" class="on">
+  <div class="setup">
+    <label>日にち<input type="date" id="date"></label>
+    <label>何時間目<select id="period"></select></label>
+    <label>コート<select id="court"></select></label>
+  </div>
+  <div class="teams">
+    <div class="team a"><select id="t1" aria-label="チーム1"></select><div class="score" id="s1">0</div>
+      <div class="pm"><button class="plus" data-k="1" data-d="1">＋1</button><button class="minus" data-k="1" data-d="-1">−1</button></div></div>
+    <div class="team b"><select id="t2" aria-label="チーム2"></select><div class="score" id="s2">0</div>
+      <div class="pm"><button class="plus" data-k="2" data-d="1">＋1</button><button class="minus" data-k="2" data-d="-1">−1</button></div></div>
+  </div>
+  <div class="rally">
+    <div><div>ネットをこえた回数</div><div class="n" id="rally">0</div><div class="best">いちばん長いラリー <b id="best">0</b> 回</div></div>
+    <div class="row"><button id="up">こえた！ ＋1</button><button class="ghost" id="end">ラリー終わり</button></div>
+  </div>
+  <div class="bar">
+    <button class="send" id="send">この試合を記録して送る</button>
+    <button class="small" id="reset">0にもどす</button>
+    <div class="timer"><span id="time">3:00</span><button id="tStart">スタート</button><button id="tSet">3分</button></div>
+  </div>
+  <div class="status" id="status"></div>
+  <p class="note">点が入ったら、点をとったチームの「＋1」をおします。ボールがネットをこえるたびに「こえた！」をおします。試合が終わったら「この試合を記録して送る」をおします。電波が弱くて送れなかったときは、このタブレットに残しておき、あとで自動で送ります。</p>
+</section>
+
+<!-- チームの記録 -->
+<section id="team">
+  <label class="note">チームをえらぶ　<select id="pick"></select></label>
+  <div class="sum" id="tsum"></div>
+  <h2>ラリーのグラフ（いちばん長いラリー）</h2>
+  <div class="chart" id="chart"></div>
+  <h2>試合の記録</h2>
+  <div id="tlist"></div>
+</section>
+
+<!-- クラス全体 -->
+<section id="all">
+  <h2>クラス全体の記録</h2>
+  <div id="alltable"></div>
+  <p class="note">いちばん長いラリーは、そのチームが出た試合の中でいちばん長かったものです。</p>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('cv_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('cv_' + k, JSON.stringify(v)); } catch (e) {} }
+};
+let TEAMS = [], GAMES = [];
+let s = store.get('state', { s1: 0, s2: 0, rally: 0, best: 0 });
+let pending = store.get('pending', []);
+
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 1800); }
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function render() {
+  $('s1').textContent = s.s1; $('s2').textContent = s.s2; $('rally').textContent = s.rally; $('best').textContent = s.best;
+  store.set('state', s);
+  const n = pending.length;
+  if (n) { $('status').className = 'status ng'; $('status').textContent = 'まだ送れていない記録が ' + n + ' 件あります。電波のよい所で、もう一度「送る」をおしてください。'; }
+}
+function endRally() { if (s.rally > s.best) s.best = s.rally; s.rally = 0; }
+
+// タブ
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('main section').forEach(x => x.classList.toggle('on', x.id === b.dataset.tab));
+  if (b.dataset.tab !== 'board') loadGames();
+});
+
+// とくてん板
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+  const k = 's' + b.dataset.k, d = +b.dataset.d;
+  s[k] = Math.max(0, s[k] + d);
+  if (d > 0) endRally();
+  render();
+});
+$('up').onclick = () => { s.rally++; render(); };
+$('end').onclick = () => { endRally(); render(); };
+$('reset').onclick = () => { if (confirm('点数とラリーを0にもどしますか？')) { s = { s1: 0, s2: 0, rally: 0, best: 0 }; render(); } };
+['date', 'period', 'court', 't1', 't2'].forEach(id => $(id).onchange = () => store.set('setup', setupNow()));
+function setupNow() { return { date: $('date').value, period: $('period').value, court: $('court').value, t1: $('t1').value, t2: $('t2').value }; }
+
+$('send').onclick = () => {
+  const st = setupNow();
+  if (st.t1 === st.t2) { toast('ちがうチームをえらんでください'); return; }
+  endRally();
+  const g = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), date: st.date, period: st.period, court: st.court,
+              team1: st.t1, score1: s.s1, team2: st.t2, score2: s.s2, best: s.best };
+  if (!confirm(g.team1 + ' ' + g.score1 + ' − ' + g.score2 + ' ' + g.team2 + '\nいちばん長いラリー ' + g.best + '回\n\nこの記録を送りますか？')) return;
+  pending.push(g); store.set('pending', pending);
+  s = { s1: 0, s2: 0, rally: 0, best: 0 }; render();
+  flush();
+};
+let sending = false;
+function flush() {
+  if (sending || !pending.length) return;
+  sending = true;
+  $('status').className = 'status'; $('status').textContent = '送っています…';
+  const g = pending[0];
+  google.script.run
+    .withSuccessHandler(() => {
+      pending.shift(); store.set('pending', pending); sending = false;
+      $('status').className = 'status ok'; $('status').textContent = '送りました（' + g.team1 + ' ' + g.score1 + ' − ' + g.score2 + ' ' + g.team2 + '）';
+      if (pending.length) flush(); else render();
+    })
+    .withFailureHandler(() => { sending = false; render(); })
+    .saveGame(g);
+}
+setInterval(flush, 30000);
+window.addEventListener('online', flush);
+
+// タイマー
+let left = 180, tid = null, len = 3;
+function showT() { $('time').textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0'); }
+$('tStart').onclick = () => {
+  if (tid) { clearInterval(tid); tid = null; $('tStart').textContent = 'スタート'; return; }
+  tid = setInterval(() => { left--; showT(); if (left <= 0) { clearInterval(tid); tid = null; $('tStart').textContent = 'スタート'; toast('しゅうりょう！'); try { navigator.vibrate && navigator.vibrate(400); } catch (e) {} } }, 1000);
+  $('tStart').textContent = 'ストップ';
+};
+$('tSet').onclick = () => { len = len === 3 ? 4 : len === 4 ? 5 : 3; left = len * 60; $('tSet').textContent = len + '分'; showT(); };
+
+// 記録を読む
+function loadGames() {
+  google.script.run.withSuccessHandler(gs => { GAMES = gs || []; drawTeam(); drawAll(); }).getGames();
+}
+function view(team) {
+  // そのチームから見た試合の一覧
+  return GAMES.filter(g => g.team1 === team || g.team2 === team).map(g => {
+    const me = g.team1 === team, my = me ? g.score1 : g.score2, op = me ? g.score2 : g.score1;
+    return { date: g.date, period: g.period, opp: me ? g.team2 : g.team1, my, op, best: g.best, res: my > op ? 'かち' : my < op ? 'まけ' : 'ひきわけ' };
+  });
+}
+function drawTeam() {
+  const team = $('pick').value, v = view(team);
+  const w = v.filter(x => x.res === 'かち').length, l = v.filter(x => x.res === 'まけ').length;
+  const best = v.reduce((m, x) => Math.max(m, x.best), 0);
+  $('tsum').innerHTML = `<div>試合<b>${v.length}</b></div><div>かち<b>${w}</b></div><div>まけ<b>${l}</b></div><div>いちばん長いラリー<b>${best}</b></div>`;
+  $('tlist').innerHTML = v.length ? '<table><tr><th>日にち</th><th>時間目</th><th>相手</th><th>点数</th><th>ラリー</th><th>かちまけ</th></tr>' +
+    v.map(x => `<tr><td>${esc(x.date)}</td><td>${esc(x.period)}</td><td>${esc(x.opp)}</td><td>${x.my} − ${x.op}</td><td>${x.best}回</td><td class="${x.res === 'かち' ? 'win' : x.res === 'まけ' ? 'lose' : ''}">${x.res}</td></tr>`).join('') + '</table>'
+    : '<p class="note">まだ記録がありません。</p>';
+  $('chart').innerHTML = chart(v);
+}
+function chart(v) {
+  if (!v.length) return '<p class="note">試合を記録すると、ここにグラフが出ます。</p>';
+  const W = 640, H = 260, L = 44, R = 16, T = 16, B = 40;
+  const max = Math.max(10, Math.ceil(Math.max(...v.map(x => x.best)) / 5) * 5);
+  const x = i => L + (W - L - R) * (v.length === 1 ? 0.5 : i / (v.length - 1));
+  const y = n => T + (H - T - B) * (1 - n / max);
+  let g = '';
+  for (let n = 0; n <= max; n += 5) g += `<line x1="${L}" x2="${W - R}" y1="${y(n)}" y2="${y(n)}" stroke="#dcdce0"/><text x="${L - 8}" y="${y(n) + 5}" text-anchor="end" font-size="13" fill="#5b5b60">${n}</text>`;
+  const pts = v.map((d, i) => `${x(i)},${y(d.best)}`).join(' ');
+  g += `<polyline points="${pts}" fill="none" stroke="#d6453d" stroke-width="4" stroke-linejoin="round"/>`;
+  v.forEach((d, i) => {
+    g += `<circle cx="${x(i)}" cy="${y(d.best)}" r="7" fill="#d6453d"/><text x="${x(i)}" y="${y(d.best) - 12}" text-anchor="middle" font-size="13" fill="#1d1d1f">${d.best}</text>`;
+    g += `<text x="${x(i)}" y="${H - 14}" text-anchor="middle" font-size="12" fill="#5b5b60">${esc(d.date)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="いちばん長いラリーの折れ線グラフ">${g}</svg>`;
+}
+function drawAll() {
+  const rows = TEAMS.map(t => {
+    const v = view(t);
+    return { t, n: v.length, w: v.filter(x => x.res === 'かち').length, l: v.filter(x => x.res === 'まけ').length,
+             d: v.filter(x => x.res === 'ひきわけ').length, best: v.reduce((m, x) => Math.max(m, x.best), 0), last: v.length ? v[v.length - 1].best : '-' };
+  });
+  $('alltable').innerHTML = '<table><tr><th>チーム</th><th>試合</th><th>かち</th><th>まけ</th><th>ひきわけ</th><th>いちばん長いラリー</th><th>さいごの試合のラリー</th></tr>' +
+    rows.map(r => `<tr><td>${esc(r.t)}</td><td>${r.n}</td><td>${r.w}</td><td>${r.l}</td><td>${r.d}</td><td>${r.best}</td><td>${r.last}</td></tr>`).join('') + '</table>';
+}
+$('pick').onchange = drawTeam;
+
+// はじめ
+(function init() {
+  for (let i = 1; i <= 7; i++) $('period').insertAdjacentHTML('beforeend', `<option value="${i}">${i}時間目</option>`);
+  for (let i = 1; i <= 4; i++) $('court').insertAdjacentHTML('beforeend', `<option value="${i}">コート${i}</option>`);
+  render(); showT();
+  google.script.run.withSuccessHandler(ts => {
+    TEAMS = ts;
+    const opts = ts.map(t => `<option>${esc(t)}</option>`).join('');
+    $('t1').innerHTML = opts; $('t2').innerHTML = opts; $('pick').innerHTML = opts;
+    const su = store.get('setup', null);
+    $('date').value = today();
+    if (su) { if (su.period) $('period').value = su.period; if (su.court) $('court').value = su.court; if (ts.includes(su.t1)) $('t1').value = su.t1; if (ts.includes(su.t2)) $('t2').value = su.t2; }
+    else if (ts.length > 1) $('t2').value = ts[1];
+    flush();
+  }).getTeams();
+})();
+</script>
+</body>
+</html>
